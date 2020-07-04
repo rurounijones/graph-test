@@ -3,6 +3,7 @@ using QuikGraph.Algorithms;
 using QuikGraph.Graphviz;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 
 namespace GraphTest
 {
@@ -10,7 +11,7 @@ namespace GraphTest
     {
         static void Main(string[] args)
         {
-            var graph = new BidirectionalGraph<TaxiPoint, TaggedEdge<TaxiPoint, string>>();
+            var graph = new UndirectedGraph<TaxiPoint, TaggedEdge<TaxiPoint, string>>();
 
             // Krymsk Airfield
             TaxiPoint runwayFour = new TaxiPoint("Runway 4");
@@ -52,8 +53,10 @@ namespace GraphTest
                 };
                 algorithm.FormatEdge += (sender, edgeArgs) =>
                 {
-                    var label = new QuikGraph.Graphviz.Dot.GraphvizEdgeLabel();
-                    label.Value = $"Taxiway {edgeArgs.Edge.Tag} : Cost {edgeCostDictionary[edgeArgs.Edge]}";
+                    var label = new QuikGraph.Graphviz.Dot.GraphvizEdgeLabel
+                    {
+                        Value = $"Taxiway {edgeArgs.Edge.Tag} : Cost {edgeCostDictionary[edgeArgs.Edge]}"
+                    };
                     edgeArgs.EdgeFormat.Label = label;
                 };
             });
@@ -71,7 +74,7 @@ namespace GraphTest
             TryFunc<TaxiPoint, IEnumerable<TaggedEdge<TaxiPoint, string>>> tryGetPaths = graph.ShortestPathsDijkstra(edgeCost, root);
 
             // Query path for given vertices
-            TaxiPoint target = bdJunction;
+            TaxiPoint target = runwayFour;
 
             Console.WriteLine("Getting Path");
 
@@ -82,7 +85,8 @@ namespace GraphTest
                 {
                     taxiways.Add(edge.Tag);
                 }
-                Console.WriteLine("{0} to {1} via taxiways {2}", root.Name, target.Name, string.Join(",", taxiways));
+
+                Console.WriteLine("{0} to {1} via taxiways {2}", root.Name, target.Name, string.Join(", ", RemoveRepeating(taxiways)));
             } else
             {
                 Console.WriteLine("Path was null");
@@ -90,6 +94,24 @@ namespace GraphTest
 
             Console.WriteLine("Press Enter to close");
             Console.ReadLine();
+        }
+
+        static List<string> RemoveRepeating(List<string> taxiways)
+        {
+            List<string> dedupedTaxiways = new List<string>();
+
+            for (int i = 0; i < taxiways.Count; i++)
+            {
+                if (i == 0)
+                {
+                    dedupedTaxiways.Add(taxiways[0]);
+                } else if (taxiways[i] != taxiways[i - 1])
+                {
+                    dedupedTaxiways.Add(taxiways[i]);
+                }
+            }
+
+            return dedupedTaxiways;
         }
 
         class TaxiPoint
